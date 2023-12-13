@@ -1,7 +1,6 @@
 /* !
- * @author Sean Coker <hello@sean.is>
- * @version 1.15.0
- * @url http://sean.is/poppin/tags
+ * @author Erfan Kateb Saber <kateberfan2@gmail.com>
+ * @version 1.15.1
  * @license MIT
  * @description Taggle is a dependency-less tagging library
  */
@@ -38,11 +37,12 @@
     };
     var BACKSPACE = 8;
     var DELETE = 46;
-    var COMMA = 188;
+    var COMMA = 44;
     var TAB = 9;
     var ENTER = 13;
     var ARROW_LEFT = 37;
     var ARROW_RIGHT = 39;
+    var VIRGOL = 1548;
 
     var DEFAULTS = {
         /**
@@ -161,7 +161,7 @@
          * Keycodes that will add a tag
          * @type {Array}
          */
-        submitKeys: [COMMA, TAB, ENTER],
+        submitKeys: [COMMA, TAB, ENTER,VIRGOL],
 
         /**
          * Preserve case of tags being added ie
@@ -422,11 +422,15 @@
         this._handleBlur = this._blurEvent.bind(this);
         this._handleKeydown = this._keydownEvents.bind(this);
         this._handleKeyup = this._keyupEvents.bind(this);
+        this._handlePress = this._keyPressEvent.bind(this);
+        this._handleInput = this._inputEvent.bind(this);
 
         _on(this.input, 'focus', this._handleFocus);
         _on(this.input, 'blur', this._handleBlur);
         _on(this.input, 'keydown', this._handleKeydown);
         _on(this.input, 'keyup', this._handleKeyup);
+        _on(this.input, 'keypress', this._handlePress);
+        _on(this.input, 'input', this._handleInput);
 
         return true;
     };
@@ -445,6 +449,7 @@
         _off(this.input, 'blur', this._handleBlur);
         _off(this.input, 'keydown', this._handleKeydown);
         _off(this.input, 'keyup', this._handleKeyup);
+        _off(this.input, 'keypress', this._handlePress);
 
         this._closeButtons.forEach(function(button, i) {
             var eventFn = self._closeEvents[i];
@@ -742,6 +747,34 @@
     };
 
     /**
+     * Runs all the events that need to run on input (for android)
+     * @param  {Event} e
+     */
+    Taggle.prototype._inputEvent = function(e) {
+        e = e || window.event;
+        var key = e.which || e.target.value.substr(-1).charCodeAt(0);
+        this.pasting = false;
+
+        this._setInputWidth();
+
+        if (key === 86 && e.metaKey) {
+            this.pasting = true;
+        }
+
+        if (this._isConfirmKey(key) && this.input.value !== '') {
+            if(VIRGOL === key) {
+                e.target.value = e.target.value.slice(0, -1); // remove last char (last char is «،»)
+            }
+            this._confirmValidTagEvent(e);
+            return;
+        }
+
+        if (this.tag.values.length) {
+            this._checkPrevOrNextTag(e);
+        }
+    };
+
+    /**
      * Runs all the events that need to run on keyup
      * @param  {Event} e
      */
@@ -767,6 +800,27 @@
         if (this.pasting && this.input.value !== '') {
             this._add(e);
             this.pasting = false;
+        }
+    };
+
+    Taggle.prototype._keyPressEvent = function(e) {
+        e = e || window.event;
+        var key = e.keyCode;
+        this.pasting = false;
+
+        this._setInputWidth();
+
+        if (key === 86 && e.metaKey) {
+            this.pasting = true;
+        }
+
+        if (this._isConfirmKey(key) && this.input.value !== '') {
+            this._confirmValidTagEvent(e);
+            return;
+        }
+
+        if (this.tag.values.length) {
+            this._checkPrevOrNextTag(e);
         }
     };
 
